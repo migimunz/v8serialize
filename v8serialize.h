@@ -20,6 +20,8 @@
 #include <boost/shared_ptr.hpp>
 #endif /*V8SERIALIZE_NO_BOOST*/
 
+namespace v8s
+{
 
 typedef v8::Handle<v8::Object> ObjectHandle;
 typedef v8::Handle<v8::Value> ValueHandle;
@@ -54,6 +56,7 @@ class load_info;
 class save_info;
 
 
+
 /**
  * \class convert
  * Class template used to convert values from and to v8 values
@@ -68,14 +71,20 @@ class save_info;
 template<typename T>
 struct convert
 {
+
+
 	/**
 	 * Converts a v8::Value to T
 	 * @param data the v8::Value to convert
 	 * @param result
 	 */
-	void from_json(const ValueHandle &data, T &result)
+	void from_js(const ValueHandle &data, T &result)
 	{
-		load_info info(data);
+		using namespace v8;
+		ObjectHandle object = ObjectHandle::Cast(data);
+		if(object.IsEmpty())
+			throw bad_conversion_exception("Cannot convert non-objects to user types");
+		load_info info(object);
 		T::load(info, result);
 	}
 	/**
@@ -83,12 +92,12 @@ struct convert
 	 * @param value The value to convert
 	 * @return v8::Value
 	 */
-	ValueHandle to_json(const T &value)
+	ValueHandle to_js(const T &value)
 	{
 		using namespace v8;
 		ObjectHandle ret = Object::New();
-		save_info data(ret);
-		T::save(data, value);
+		save_info info(ret);
+		T::save(info, value);
 		return ret;
 	}
 };
@@ -105,13 +114,13 @@ struct convert
 struct load_info
 {
 
-	ValueHandle value;
+	ObjectHandle object;
 	/**
 	 * load_info constructor
 	 * @param value a value handle
 	 */
-	explicit load_info(const ValueHandle &value)
-		:value(value) {}
+	explicit load_info(const ObjectHandle &object)
+		:object(object) {}
 
 	/**
 	 * Converts a property of an object named \c name to T, assigns the result of conversion to \c result,
@@ -126,11 +135,10 @@ struct load_info
 		HandleScope scope;
 		TryCatch try_catch;
 
-		ObjectHandle value_obj = ObjectHandle::Cast(value);
-		ValueHandle child = value_obj->Get(String::New(name.c_str()));
+		ValueHandle child = object->Get(String::New(name.c_str()));
 		if(try_catch.HasCaught() || child->IsUndefined())
 			throw bad_conversion_exception();
-		convert<T>().from_json(child, result);
+		convert<T>().from_js(child, result);
 	}
 
 	/**
@@ -192,7 +200,7 @@ struct save_info
 		if(object.IsEmpty()) //if handle is not bound to an object
 			throw bad_conversion_exception();
 
-		object->Set(String::New(name.c_str()), convert<T>().to_json(svalue));
+		object->Set(String::New(name.c_str()), convert<T>().to_js(svalue));
 		if(try_catch.HasCaught())
 			throw bad_conversion_exception();
 	}
@@ -204,13 +212,14 @@ struct save_info
  * @param result result of the conversion is assigned to this
  */
 template<typename T>
-void from_json(const ValueHandle &value, T &result)
+void from_js(const ValueHandle &value, T &result)
 {
 	using namespace v8;
 	HandleScope scope;
 	TryCatch try_catch;
 
-	convert<T>().from_json(value, result);
+
+	convert<T>().from_js(value, result);
 	if(try_catch.HasCaught())
 		throw bad_conversion_exception();
 }
@@ -221,13 +230,13 @@ void from_json(const ValueHandle &value, T &result)
  * @return resulting v8::Value
  */
 template<typename T>
-ValueHandle to_json(const T &value)
+ValueHandle to_js(const T &value)
 {
 	using namespace v8;
 	HandleScope scope;
 	TryCatch try_catch;
 
-	ValueHandle ret = convert<T>().to_json(value);
+	ValueHandle ret = convert<T>().to_js(value);
 	if(try_catch.HasCaught())
 		throw bad_conversion_exception();
 	else
@@ -242,14 +251,14 @@ ValueHandle to_json(const T &value)
 template<>
 struct convert< int16_t >
 {
-	void from_json(const ValueHandle &data, int16_t &result)
+	void from_js(const ValueHandle &data, int16_t &result)
 	{
 		if(data->IsNumber())
 			result = data->Int32Value();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const int16_t &value)
+	ValueHandle to_js(const int16_t &value)
 	{
 		return v8::Integer::New(value);
 	}
@@ -260,14 +269,14 @@ struct convert< int16_t >
 template<>
 struct convert< uint16_t >
 {
-	void from_json(const ValueHandle &data, uint16_t &result)
+	void from_js(const ValueHandle &data, uint16_t &result)
 	{
 		if(data->IsNumber())
 			result = data->Uint32Value();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const uint16_t &value)
+	ValueHandle to_js(const uint16_t &value)
 	{
 		return v8::Integer::NewFromUnsigned(value);
 	}
@@ -278,14 +287,14 @@ struct convert< uint16_t >
 template<>
 struct convert< int32_t >
 {
-	void from_json(const ValueHandle &data, int32_t &result)
+	void from_js(const ValueHandle &data, int32_t &result)
 	{
 		if(data->IsNumber())
 			result = data->Int32Value();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const int32_t &value)
+	ValueHandle to_js(const int32_t &value)
 	{
 		return v8::Integer::New(value);
 	}
@@ -296,14 +305,14 @@ struct convert< int32_t >
 template<>
 struct convert< uint32_t >
 {
-	void from_json(const ValueHandle &data, uint32_t &result)
+	void from_js(const ValueHandle &data, uint32_t &result)
 	{
 		if(data->IsNumber())
 			result = data->Uint32Value();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const uint32_t &value)
+	ValueHandle to_js(const uint32_t &value)
 	{
 		return v8::Integer::NewFromUnsigned(value);
 	}
@@ -314,14 +323,14 @@ struct convert< uint32_t >
 template<>
 struct convert< int64_t >
 {
-	void from_json(const ValueHandle &data, int64_t &result)
+	void from_js(const ValueHandle &data, int64_t &result)
 	{
 		if(data->IsNumber())
 			result = data->IntegerValue();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const int64_t &value)
+	ValueHandle to_js(const int64_t &value)
 	{
 		return v8::Number::New(static_cast<double>(value));
 	}
@@ -332,14 +341,14 @@ struct convert< int64_t >
 template<>
 struct convert< uint64_t >
 {
-	void from_json(const ValueHandle &data, uint64_t &result)
+	void from_js(const ValueHandle &data, uint64_t &result)
 	{
 		if(data->IsNumber())
 			result = data->IntegerValue();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const uint64_t &value)
+	ValueHandle to_js(const uint64_t &value)
 	{
 		return v8::Number::New(static_cast<double>(value));
 	}
@@ -350,14 +359,14 @@ struct convert< uint64_t >
 template<>
 struct convert< double >
 {
-	void from_json(const ValueHandle &data, double &result)
+	void from_js(const ValueHandle &data, double &result)
 	{
 		if(data->IsNumber())
 			result = data->NumberValue();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const double &value)
+	ValueHandle to_js(const double &value)
 	{
 		return v8::Number::New(value);
 	}
@@ -368,14 +377,14 @@ struct convert< double >
 template<>
 struct convert< float >
 {
-	void from_json(const ValueHandle &data, float &result)
+	void from_js(const ValueHandle &data, float &result)
 	{
 		if(data->IsNumber())
 			result = data->NumberValue();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const float &value)
+	ValueHandle to_js(const float &value)
 	{
 		return v8::Number::New(value);
 	}
@@ -386,14 +395,14 @@ struct convert< float >
 template<>
 struct convert< bool >
 {
-	void from_json(const ValueHandle &data, bool &result)
+	void from_js(const ValueHandle &data, bool &result)
 	{
 		if(data->IsBoolean())
 			result = data->BooleanValue();
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const bool &value)
+	ValueHandle to_js(const bool &value)
 	{
 		return v8::Boolean::New(value);
 	}
@@ -404,7 +413,7 @@ struct convert< bool >
 template<>
 struct convert< std::string >
 {
-	void from_json(const ValueHandle &data, std::string &result)
+	void from_js(const ValueHandle &data, std::string &result)
 	{
 		using namespace v8;
 		if(data->IsString())
@@ -415,7 +424,7 @@ struct convert< std::string >
 		else
 			throw bad_conversion_exception();
 	}
-	ValueHandle to_json(const std::string &value)
+	ValueHandle to_js(const std::string &value)
 	{
 		return v8::String::New(value.c_str());
 	}
@@ -427,7 +436,7 @@ struct convert< std::string >
 template<typename T>
 struct convert< std::map<std::string, T> >
 {
-	void from_json(const ValueHandle &data, std::map<std::string, T> &result)
+	void from_js(const ValueHandle &data, std::map<std::string, T> &result)
 	{
 		using namespace v8;
 		HandleScope scope;
@@ -448,11 +457,11 @@ struct convert< std::map<std::string, T> >
 
 			ValueHandle value = object->Get(js_name);
 			T second;
-			convert<T>().from_json(value, second);
+			convert<T>().from_js(value, second);
 			result[first] = second;
 		}
 	}
-	ValueHandle to_json(const std::map<std::string, T> &value)
+	ValueHandle to_js(const std::map<std::string, T> &value)
 	{
 		using namespace v8;
 		HandleScope scope;
@@ -462,7 +471,7 @@ struct convert< std::map<std::string, T> >
 		typename std::map<std::string, T>::const_iterator iter;
 		for(iter = value.begin(); iter != value.end(); iter++)
 		{
-			ValueHandle ret = convert<T>().to_json(iter->second);
+			ValueHandle ret = convert<T>().to_js(iter->second);
 			object->Set(String::New(iter->first.c_str()), ret);
 		}
 		return scope.Close(object);
@@ -477,7 +486,7 @@ struct convert< std::map<std::string, T> >
 template<typename C, typename T>
 struct convert_list
 {
-	void from_json(const ValueHandle &data, C &result)
+	void from_js(const ValueHandle &data, C &result)
 	{
 		using namespace v8;
 		HandleScope scope;
@@ -492,11 +501,11 @@ struct convert_list
 		for(uint32_t i = 0; i < length; ++i)
 		{
 			T element;
-			convert<T>().from_json(array->Get(i), element);
+			convert<T>().from_js(array->Get(i), element);
 			result.push_back(element);
 		}
 	}
-	ValueHandle to_json(const C &value)
+	ValueHandle to_js(const C &value)
 	{
 		using namespace v8;
 		HandleScope scope;
@@ -507,7 +516,7 @@ struct convert_list
 		uint32_t i = 0;
 		for(iter = value.begin(); iter != value.end(); iter++)
 		{
-			array->Set(i, convert<T>().to_json(*iter));
+			array->Set(i, convert<T>().to_js(*iter));
 			i++;
 		}
 		return scope.Close(array);
@@ -542,18 +551,20 @@ struct convert< std::vector<T> > : public convert_list< std::vector<T>, T >
 template<typename T>
 struct convert< boost::shared_ptr<T> >
 {
-	void from_json(const ValueHandle &data, boost::shared_ptr<T> &result)
+	void from_js(const ValueHandle &data, boost::shared_ptr<T> &result)
 	{
 		using boost::shared_ptr;
 		result = shared_ptr<T>(new T());
-		convert<T>().from_json(data, *result);
+		convert<T>().from_js(data, *result);
 	}
-	ValueHandle to_json(const boost::shared_ptr<T> &value)
+	ValueHandle to_js(const boost::shared_ptr<T> &value)
 	{
-		return convert<T>().to_json(*value);
+		return convert<T>().to_js(*value);
 	}
 };
 
 #endif /*V8SERIALIZE_NO_BOOST*/
+
+}
 
 #endif /* V8SERIALIZE_H_ */

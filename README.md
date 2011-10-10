@@ -6,21 +6,21 @@ C++ and JavaScript types. The primary goal of the library is to use it as
 a method of serializing C++ data to json and back using v8.
 
 Building and dependencies 
-=========================
+-------------------------
 
 v8s is header only so there's nothing to build. Just download, include and use.
-v8s depends on STL and some boost libraries (shared_ptr and function at 
-the moment). boost functionality is optional, define `V8SERIALIZE_NO_BOOST`
-to use v8s without it.
+v8s depends on STL and some boost libraries (just `boost::shared_ptr` at 
+the moment, boost::function might be added later). boost functionality is 
+optional, define `V8SERIALIZE_NO_BOOST` to use v8s without it.
 
 Supported compilers
-===================
+-------------------
 
 So far v8s has only been tested on g++ 4.5.2, but it should work without
 problems with any sane compiler.
 
 Converting types
-================
+----------------
 
 
 Converting types from JavaScript to C++ is done using `from_js`, from C++ 
@@ -38,11 +38,11 @@ the box:
 * `boost::shared_ptr<T>` if T is convertible *(only if* `V8SERIALIZE_NO_BOOST` *is not defined)*
 
 The library exposes two functions for conversion : `v8s::from_js` and `v8s::to_js`. 
-All v8serialize functions and classes are members of namespace `v8s`, but it will 
+All v8serialize functions and classes are members of `namespace v8s`, but it will 
 be omitted in the examples for readability. 
 
-Converting from JavaScript to C++
----------------------------------
+Examples
+--------
 
     Handle<Value> js_value; //value to convert to C++
     uint32_t cpp_value; //value to convert to
@@ -51,7 +51,7 @@ Converting from JavaScript to C++
 
 This will either convert js_value to cpp_value or throw a `bad_conversion_exception`
 if js_value can't be converted to a uint32_t. To convert from
-C++ types to JavaScript, use `to_js`. Note that to_js returns a 
+C++ types to JavaScript, use `to_js`. Note that `to_js` returns a 
 `v8::Handle<Value>`, whereas `from_js` requires you to pass a C++ value 
 to be filled by reference.
 

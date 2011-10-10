@@ -125,7 +125,7 @@ And for `config` :
 	void load(v8s::load_info &data, config &o)
 	{
 		data.get("screen", o.screen_settings);
-		data.get("windowName", o.window_name, std::string("engine"));
+		data.get("windowName", o.window_name, std::string("Generic window"));
 	}
 	void save(v8s::save_info &data, const config &o)
 	{
@@ -142,6 +142,12 @@ Converting them from js to C++ and back :
 	Handle<Value> out = to_js(config);
 	json_to_file(out, "config_out.json");    
 
+The `load_info::get` method can be called with 3 arguments, the third one 
+being the default value. In `config::load`, property "windowName" is being
+converted and written into `o.window_name`. If the conversion fails, either
+because "windowName" is not a string or is simply not defined, value of 
+`o.window_name` will be set to the default value "Generic window".
+
 When converting from a JavaScript type to `boost::shared_ptr<T>`, if 
 there is a valid conversion from that type to T, a value of type T will be
-created using `new` and converted
+created using `new` and converted as it normally would. 
